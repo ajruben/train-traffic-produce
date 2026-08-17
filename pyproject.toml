@@ -10,4 +10,5 @@ dependencies = [
     "plotly>=6.9.0",
     "pyspark[connect,pandas-on-spark,sql]>=4.2.0",
     "python-dotenv>=1.2.3",
+    "requests>=2.34.2",
 ]
