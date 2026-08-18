@@ -1,0 +1,36 @@
+name: pr-checks
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure VERSION was bumped
+        run: |
+          set -euo pipefail
+          git fetch origin master --depth=1
+
+          master_ver=$(git show origin/master:VERSION 2>/dev/null | awk -F= '/^VERSION=/{print $2}' || echo "")
+          pr_ver=$(awk -F= '/^VERSION=/{print $2}' VERSION)
+
+          echo "master VERSION=${master_ver:-<none>}"
+          echo "PR   VERSION=${pr_ver}"
+
+          if [ -z "$pr_ver" ]; then
+            echo "::error::VERSION file missing or malformed on this PR"
+            exit 1
+          fi
+
+          if [ "$master_ver" = "$pr_ver" ]; then
+            echo "::error::VERSION was not bumped (still $pr_ver). Bump it before merging."
+            exit 1
+          fi
+
+          echo "VERSION bumped: ${master_ver:-<none>} -> $pr_ver"

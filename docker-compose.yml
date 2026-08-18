@@ -1,0 +1,15 @@
+services:
+  train-producer:
+    build: .
+    image: train-traffic-produce:${VERSION:-latest}
+    container_name: train-producer
+    environment:
+      BOOTSTRAP: kafka:29092
+      PRIMARY_KEY: ${PRIMARY_KEY}
+    networks:
+      - server_default
+    restart: unless-stopped
+
+networks:
+  server_default:
+    external: true
