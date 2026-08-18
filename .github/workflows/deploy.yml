@@ -1,0 +1,40 @@
+name: deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-train-producer
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, swartsshare]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read VERSION file
+        id: ver
+        run: |
+          set -euo pipefail
+          . ./VERSION
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "image=${DOCKER_IMAGE_NAME}" >> "$GITHUB_OUTPUT"
+          echo "Deploying ${DOCKER_IMAGE_NAME}:${VERSION}"
+
+      - name: Build and start container
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          PRIMARY_KEY: ${{ secrets.NS_PRIMARY_KEY }}
+        run: |
+          docker compose build
+          docker compose up -d
+          docker image prune -f
+
+      - name: Verify container is up
+        run: |
+          sleep 3
+          docker ps --filter name=train-producer --format '{{.Names}} {{.Status}}'
+          docker logs train-producer --tail 20
