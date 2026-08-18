@@ -6,9 +6,16 @@ services:
     environment:
       BOOTSTRAP: kafka:29092
       PRIMARY_KEY: ${PRIMARY_KEY}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     networks:
       - server_default
     restart: unless-stopped
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   server_default:
