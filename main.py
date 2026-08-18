@@ -5,7 +5,7 @@ import time
 
 from dotenv import load_dotenv
 
-from email.utils import formatdate
+from email.utils import parsedate_to_datetime
 from confluent_kafka import Producer
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -63,7 +63,10 @@ def main() -> None:
                 # caught the trains :D
                 payload = response.content
                 date_response = response.headers.get("Date")
-                event_time = date_response.encode() if date_response else None
+                if date_response:
+                    event_time = str(int(parsedate_to_datetime(date_response).timestamp() * 1000)).encode()
+                else:
+                    event_time = None
 
                 # inspect the train
                 trains = Trains.model_validate_json(payload).payload.treinen
@@ -85,7 +88,7 @@ def main() -> None:
                         train_msg = json.dumps(train).encode()
 
                         #all aboard and choo choo to kafka
-                        p.produce(topic=TOPIC, key=train_nr, value=train_msg, headers={'event_time':event_time}, callback=train_message) #immediate
+                        p.produce(topic=TOPIC, key=train_nr, value=train_msg, headers={'event_time_ms': event_time}, callback=train_message) #immediate
 
                         #track state of choo choo msg
                         p.poll(0)
