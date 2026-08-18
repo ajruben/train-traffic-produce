@@ -15,7 +15,7 @@ load_dotenv()
 from schemas.train import Train, Trains
 
 #NS API
-PRIMARY_KEY = os.getenv("PRIMARY_KEY")
+PRIMARY_KEY = os.getenv("PRIMARY_KEY", "").strip()
 VIRTUAL_TRAIN_URL: str =  "https://gateway.apiportal.ns.nl/virtual-train-api/vehicle"
 headers= {"Cache-Control":"no-cache",
                           "Ocp-Apim-Subscription-Key":PRIMARY_KEY}
