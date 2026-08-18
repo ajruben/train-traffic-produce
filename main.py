@@ -1,6 +1,8 @@
 import json
+import logging
 import os
 import requests
+import signal
 import time
 
 from dotenv import load_dotenv
@@ -13,6 +15,16 @@ from urllib3.util.retry import Retry
 load_dotenv()
 
 from schemas.train import Train, Trains
+
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S",
+)
+log = logging.getLogger("train-producer")
+
+# docker stop sends SIGTERM, train is coming to a halt 
+signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
 
 #NS API
 PRIMARY_KEY = os.getenv("PRIMARY_KEY", "").strip()
@@ -41,9 +53,9 @@ TOPIC: str = "traffic-event"
 
 def train_message(err, msg):
     if err is not None:
-        print(f"Train message derailed {str(err), str(msg)}")
+        log.error("train message derailed: %s (%s)", err, msg)
     else:
-        print(f"Tain message published {str(msg.topic())} | {msg.partition()} | {msg.offset()}")
+        log.debug("tain message published %s | p=%s | o=%s", msg.topic(), msg.partition(), msg.offset())
 
 def main() -> None:
     p: Producer = Producer(BOOTSTRAP)
@@ -79,7 +91,7 @@ def main() -> None:
                             Train.model_validate(train)
                             chad_trains += 1
                         except Exception as e:
-                            print(f"Train does not look like a train. At least pydantic says so: {e}")
+                            log.warning("train does not look like a train. at least pydantic says so: %s", e)
                             tRaInS += 1
                             continue
 
@@ -92,20 +104,24 @@ def main() -> None:
 
                         #track state of choo choo msg
                         p.poll(0)
-                    print(f"batch: {chad_trains} produced, {tRaInS} skipped")
+                    log.info(
+                        "batch: %d produced, %d skipped | api_returned=%d | response_bytes=%d",
+                        chad_trains, tRaInS, len(trains), len(payload),
+                    )
                 else:
-                    print("where them trains at? NS API worked but no trains??")
+                    log.warning("where them trains at? NS API worked but no trains?? | response_bytes=%d", len(payload))
                     time.sleep(10)
                     continue
                 time.sleep(10)
 
             # missed the trains :(
+            # missed the trains :(
             except requests.RequestException as e:
-                print(f"fetch failed: {e}")
+                log.error("missed the trains, fetch failed: %s", e)
                 time.sleep(5)
 
     except KeyboardInterrupt:
-        print("Someone pulled the emergency break, train coming to a halt. (KeyboardInterrupt)")
+        log.info("someone pulled the emergency break, train coming to a halt. (KeyboardInterrupt)")
     finally:
         p.flush() # make sure every queed message is delivered
 
