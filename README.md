@@ -1,5 +1,8 @@
 In this project I set up a Kafaka producer: polling the NS API to get live train data in the Netherlands and pass the data down to Kafka which is deployed on my own server.
 The response is validated with pydantic, and keyed by train before sending to the topic.
+
+<img width="300" height="548" alt="afbeelding" src="https://github.com/user-attachments/assets/35ed7e34-4810-422b-8596-e73736dbbaf8" />
+
  
 In order to reproduce the project, you will need to set up your own simple kafka cluster (server) and pass the server in the .env, and create an account in the ns api portal and add the subscription key in the .evmv.
 
